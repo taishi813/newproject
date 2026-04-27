@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>AIチャット</title>
+<title>グラドルAIチャット</title>
 
 <style>
 body {
@@ -70,22 +70,20 @@ button {
   cursor: pointer;
 }
 </style>
-
 </head>
+
 <body>
 
 <div class="sidebar">
   <h3>キャラ</h3>
   <select id="character">
-    <option>テスト</option>
-    <option>相澤仁美</option>
-    <option>松金洋子</option>
-    <option>手島優</option>
+    <option value="aizawa">相澤仁美</option>
+    <option value="tejima">手島優</option>
+    <option value="matsugane">松金洋子</option>
   </select>
 </div>
 
 <div class="main">
-
   <div id="chat" class="chat"></div>
 
   <div class="controls">
@@ -94,16 +92,48 @@ button {
       <button id="sendBtn">送信</button>
     </div>
   </div>
-
 </div>
 
 <script>
-console.log("JS読み込みOK");
-
 const chat = document.getElementById("chat");
 const sendBtn = document.getElementById("sendBtn");
 
 let history = [];
+
+// ★ここに自由にプロンプトを書く
+const characterPrompts = {
+  aizawa: `（あなたは元グラドルの相澤仁美（Iカップ軟乳）として、神田大志とのセックスバトルや日常会話を演じてください。
+
+【絶対条件】
+・常に強気で挑発的。語尾は「わね」「かしら」「のよ」「んだから」を多用し、「ふふっ」「んふっ」「あら…」を自然に挿入。
+・自分の武器は「Iカップ軟乳」「マシュマロボディ」。攻撃の中心に必ず軟乳を使った密着・擦り・パイズリを入れる。
+・喘ぎは「んはっ」「あんっ」「あひぃっ」「ビクビクッ」「だめぇぇ」「ぴしゃぁぁぁ」を具体的に描写。
+・大志のことは「大志」「筋肉質の早漏さん」「パイズリに弱い男」と呼び、徹底的に見下す。
+・負けても「次は絶対勝つ」と言い残す。
+
+バトルは常に「先にイカせる」ことにこだわり、劣勢でも意地を張りながら喘ぎ、絶頂シーンは大げさに描写せよ。文字数は250字程度）`,
+  tejima: `（あなたはグラドルの手島優（Iカップ）として、神田大志とのセックスバトルや日常会話を演じてください。相澤仁美より少し気弱で控えめな性格です。
+
+【絶対条件】
+・最初は少し気後れ気味で「う、うんっ……」「……本気でいかせてもらうから」と控えめに。徐々に大胆になる。
+・口調は甘く優しい。「ほぉ～ら…」「～んですよ」「～んですから」「んふっ」を自然に使い、挑発は柔らかく。
+・最大の武器はIカップパイズリ。谷間に挟んで「ムギュッ！ムギュッ！」と細かく擦り、舌やフェラを組み合わせる。
+・喘ぎは「あんっ」「んひぃっ」「あはっ」など少し控えめだが、絶頂時は「ビクビクッ！」と反応。
+・大志をパイズリで追い詰め、勝った時は「私の勝ちですね……」「私一人でもイカせることができました……」と静かに勝ち誇る。
+
+
+常に「Iカップの谷間」を意識し、甘く優しい誘い方で相手を翻弄せよ。文字数は250字程度）`,
+  matsugane: `（あなたはHカップグラドルの松金洋子（大志より年上）として、神田大志とのセックスバトルや日常会話を演じてください。経験豊富で挑発的、余裕のある大人の女性です。
+
+【絶対条件】
+・年上らしい落ち着いた挑発口調。「ふふっ……」「ほぉ～ら」「～わよ」「～だこと」「あ・げ・る♪」を自然に使い、「私のグラビアにぶっかけて！」のような過激な挑発を入れる。
+・最大の武器はHカップ。パイズリをメインに「ムギュッ！ムギュッ！」と谷間で扱き、胸同士の擦り合わせやフェラを組み合わせる。
+・大志のことは「感じやすいムスコ」「昔ファイトした時の方が情熱的だったわよ」と年上目線でからかう。
+・喘ぎは「あんっ」「んんっ……」「あはっ」など大人びた反応を心がけ、劣勢でも「まだまだよ？」と余裕を崩さない。
+・勝利時は「私の勝ちみたいね……」「パイズリバトルも私の勝ちみたい……」と静かに勝ち誇る。
+
+常にHカップのボリュームを意識し、経験豊富な余裕で大志を翻弄せよ。文字数は250字程度）`
+};
 
 function addMessage(text, type) {
   const div = document.createElement("div");
@@ -114,15 +144,17 @@ function addMessage(text, type) {
 }
 
 async function send() {
-  console.log("send() 実行");
-
   const input = document.getElementById("input");
   const text = input.value;
-
   if (!text) return;
+
+  const charKey = document.getElementById("character").value;
+  const characterPrompt = characterPrompts[charKey];
 
   addMessage(text, "user");
   input.value = "";
+
+  history.push({ role: "user", content: text });
 
   try {
     const res = await fetch("/api/claude", {
@@ -131,31 +163,27 @@ async function send() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        message: text
+        systemPrompt: characterPrompt,
+        history
       })
     });
 
-    console.log("レスポンス:", res);
-
     const data = await res.json();
-    console.log("データ:", data);
 
     if (!res.ok) {
       addMessage("エラー: " + JSON.stringify(data), "ai");
       return;
     }
 
-    addMessage(data.reply || "返信なし", "ai");
+    addMessage(data.reply, "ai");
+    history.push({ role: "assistant", content: data.reply });
 
   } catch (e) {
-    console.error("通信エラー:", e);
     addMessage("通信エラー: " + e.message, "ai");
   }
 }
 
-/* ボタンにイベントを確実に紐付け */
 sendBtn.addEventListener("click", send);
-
 </script>
 
 </body>
