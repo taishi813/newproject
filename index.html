@@ -134,26 +134,33 @@ async function send() {
     const text = input.value;
     if (!text) return;
 
-    const character = document.getElementById("character").value;
-    const mode = document.getElementById("mode").value;
-
     addMessage(text, "user");
     input.value = "";
-
-    history.push({ role: "user", content: text });
 
     const res = await fetch("/api/claude", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        character: prompts[character],
-        mode,
-        history
-      })
+      body: JSON.stringify({ message: text })
     });
 
+    const data = await res.json();
+
+    console.log(data); // ←追加
+
+    if (!res.ok) {
+      addMessage("エラー: " + JSON.stringify(data), "ai");
+      return;
+    }
+
+    addMessage(data.reply || "返信なし", "ai");
+
+  } catch (e) {
+    console.error(e); // ←追加
+    addMessage("通信エラー: " + e.message, "ai");
+  }
+}
     const data = await res.json();
 
     if (!res.ok) {
