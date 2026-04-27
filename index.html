@@ -128,29 +128,45 @@ function addMessage(text, type) {
 }
 
 async function send() {
-  const input = document.getElementById("input");
-  const text = input.value;
-  if (!text) return;
+  try {
+    const input = document.getElementById("input");
+    const text = input.value;
+    if (!text) return;
 
-  const character = document.getElementById("character").value;
-  const mode = document.getElementById("mode").value;
+    const character = document.getElementById("character").value;
+    const mode = document.getElementById("mode").value;
 
-  addMessage(text, "user");
-  input.value = "";
+    addMessage(text, "user");
+    input.value = "";
 
-  history.push({ role: "user", content: text });
+    history.push({ role: "user", content: text });
 
-  const res = await fetch("/api/claude", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      character: prompts[character],
-      mode,
-      history
-    })
-  });
+    const res = await fetch("/api/claude", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        character: prompts[character],
+        mode,
+        history
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      addMessage("エラー: " + JSON.stringify(data), "ai");
+      return;
+    }
+
+    addMessage(data.reply, "ai");
+    history.push({ role: "assistant", content: data.reply });
+
+  } catch (e) {
+    addMessage("通信エラー: " + e.message, "ai");
+  }
+}
 
   const data = await res.json();
 
