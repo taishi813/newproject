@@ -11,7 +11,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "claude-opus-4-7",
-        max_tokens: 300,
+        max_tokens: 600,
         system: systemPrompt,
         messages: history
       })
