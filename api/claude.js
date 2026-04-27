@@ -1,47 +1,45 @@
 export default async function handler(req, res) {
-  const { character, mode, location, time, history } = req.body;
+  try {
+    const { message } = req.body;
 
-  let instruction = "";
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.CLAUDE_API_KEY,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 300,
+        messages: [
+          {
+            role: "user",
+            content: message
+          }
+        ]
+      })
+    });
 
-  if (mode === "chat") {
-    instruction = "キャラになりきって自然に会話してください。";
-  }
+    const text = await response.text(); // ←重要
 
-  if (mode === "battle") {
-    instruction = `場所:${location} 時間:${time} バトルを描写してください。`;
-  }
+    console.log("Claude raw:", text);
 
-  const messages = [
-    {
-      role: "user",
-      content: `
-${character}
-
-${instruction}
-
-過去会話:
-${JSON.stringify(history)}
-`
+    if (!response.ok) {
+      return res.status(500).json({
+        error: text
+      });
     }
-  ];
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.CLAUDE_API_KEY,
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 300,
-      messages
-    })
-  });
+    const data = JSON.parse(text);
 
-  const data = await response.json();
+    res.status(200).json({
+      reply: data.content[0].text
+    });
 
-  res.status(200).json({
-    reply: data.content[0].text
-  });
+  } catch (e) {
+    res.status(500).json({
+      error: e.message
+    });
+  }
 }
