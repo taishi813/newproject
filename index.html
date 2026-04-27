@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>グラドルAIチャット2</title>
+<title>AIチャット</title>
 
 <style>
 body {
@@ -12,7 +12,6 @@ body {
   height: 100vh;
 }
 
-/* サイドバー */
 .sidebar {
   width: 220px;
   background: #202123;
@@ -20,11 +19,6 @@ body {
   padding: 10px;
 }
 
-.sidebar h3 {
-  margin-top: 0;
-}
-
-/* メイン */
 .main {
   flex: 1;
   display: flex;
@@ -56,7 +50,6 @@ body {
   color: white;
 }
 
-/* 入力 */
 .controls {
   padding: 10px;
   background: #40414f;
@@ -66,13 +59,14 @@ body {
   display: flex;
 }
 
-input, select {
-  padding: 8px;
-  margin-right: 5px;
+input {
+  flex: 1;
+  padding: 10px;
 }
 
 button {
-  padding: 8px;
+  padding: 10px;
+  margin-left: 5px;
   cursor: pointer;
 }
 </style>
@@ -83,16 +77,10 @@ button {
 <div class="sidebar">
   <h3>キャラ</h3>
   <select id="character">
-
+    <option>テスト</option>
     <option>相澤仁美</option>
     <option>松金洋子</option>
     <option>手島優</option>
-  </select>
-
-  <h3>モード</h3>
-  <select id="mode">
-    <option value="chat">会話</option>
-    <option value="battle">バトル生成</option>
   </select>
 </div>
 
@@ -102,23 +90,20 @@ button {
 
   <div class="controls">
     <div class="input-area">
-      <input id="input" placeholder="メッセージを入力...">
-      <button onclick="send()">送信</button>
+      <input id="input" placeholder="メッセージを入力">
+      <button id="sendBtn">送信</button>
     </div>
   </div>
 
 </div>
 
 <script>
+console.log("JS読み込みOK");
+
 const chat = document.getElementById("chat");
+const sendBtn = document.getElementById("sendBtn");
 
 let history = [];
-
-const prompts = {
-  "相澤仁美": "あなたは相澤仁美。大志とバトル関係にある。挑発的で余裕ある口調。",
-  "松金洋子": "あなたは松金洋子。大人っぽく落ち着いた口調。",
-  "手島優": "あなたは手島優。明るくフレンドリー。"
-};
 
 function addMessage(text, type) {
   const div = document.createElement("div");
@@ -129,25 +114,31 @@ function addMessage(text, type) {
 }
 
 async function send() {
+  console.log("send() 実行");
+
+  const input = document.getElementById("input");
+  const text = input.value;
+
+  if (!text) return;
+
+  addMessage(text, "user");
+  input.value = "";
+
   try {
-    const input = document.getElementById("input");
-    const text = input.value;
-    if (!text) return;
-
-    addMessage(text, "user");
-    input.value = "";
-
     const res = await fetch("/api/claude", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ message: text })
+      body: JSON.stringify({
+        message: text
+      })
     });
 
-    const data = await res.json();
+    console.log("レスポンス:", res);
 
-    console.log(data); // ←追加
+    const data = await res.json();
+    console.log("データ:", data);
 
     if (!res.ok) {
       addMessage("エラー: " + JSON.stringify(data), "ai");
@@ -157,31 +148,14 @@ async function send() {
     addMessage(data.reply || "返信なし", "ai");
 
   } catch (e) {
-    console.error(e); // ←追加
-    addMessage("通信エラー: " + e.message, "ai");
-  }
-}
-    const data = await res.json();
-
-    if (!res.ok) {
-      addMessage("エラー: " + JSON.stringify(data), "ai");
-      return;
-    }
-
-    addMessage(data.reply, "ai");
-    history.push({ role: "assistant", content: data.reply });
-
-  } catch (e) {
+    console.error("通信エラー:", e);
     addMessage("通信エラー: " + e.message, "ai");
   }
 }
 
-  const data = await res.json();
+/* ボタンにイベントを確実に紐付け */
+sendBtn.addEventListener("click", send);
 
-  addMessage(data.reply, "ai");
-
-  history.push({ role: "assistant", content: data.reply });
-}
 </script>
 
 </body>
