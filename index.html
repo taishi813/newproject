@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>グラドルAIチャット</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: sans-serif;
+  display: flex;
+  height: 100vh;
+}
+
+/* サイドバー */
+.sidebar {
+  width: 220px;
+  background: #202123;
+  color: white;
+  padding: 10px;
+}
+
+.sidebar h3 {
+  margin-top: 0;
+}
+
+/* メイン */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #343541;
+}
+
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.message {
+  margin-bottom: 15px;
+  max-width: 70%;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.user {
+  background: #4f46e5;
+  color: white;
+  margin-left: auto;
+}
+
+.ai {
+  background: #444654;
+  color: white;
+}
+
+/* 入力 */
+.controls {
+  padding: 10px;
+  background: #40414f;
+}
+
+.input-area {
+  display: flex;
+  margin-top: 5px;
+}
+
+input, select {
+  padding: 8px;
+  margin-right: 5px;
+}
+
+button {
+  padding: 8px;
+}
+</style>
+
+</head>
+<body>
+
+<div class="sidebar">
+  <h3>キャラ</h3>
+  <select id="character">
+    <option>相澤仁美</option>
+    <option>松金洋子</option>
+    <option>手島優</option>
+  </select>
+
+  <h3>モード</h3>
+  <select id="mode">
+    <option value="chat">会話</option>
+    <option value="battle">バトル生成</option>
+  </select>
+</div>
+
+<div class="main">
+
+  <div id="chat" class="chat"></div>
+
+  <div class="controls">
+    <input id="location" placeholder="場所">
+    <input id="time" placeholder="時間">
+
+    <div class="input-area">
+      <input id="input" placeholder="メッセージ..." onkeydown="enter(event)">
+      <button onclick="send()">送信</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const chat = document.getElementById("chat");
+
+let history = [];
+
+const prompts = {
+  "相澤仁美": "あなたは相澤仁美。大志とバトル関係にある。挑発的で余裕ある口調。",
+  "松金洋子": "あなたは松金洋子。大人っぽく落ち着いた口調。",
+  "手島優": "あなたは手島優。明るくフレンドリー。"
+};
+
+function addMessage(text, type) {
+  const div = document.createElement("div");
+  div.className = "message " + type;
+  div.innerText = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function send() {
+  const input = document.getElementById("input");
+  const text = input.value;
+  if (!text) return;
+
+  const character = document.getElementById("character").value;
+  const mode = document.getElementById("mode").value;
+  const location = document.getElementById("location").value;
+  const time = document.getElementById("time").value;
+
+  addMessage(text, "user");
+  input.value = "";
+
+  history.push({ role: "user", content: text });
+
+  const res = await fetch("/api/claude", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      character: prompts[character],
+      mode,
+      location,
+      time,
+      history
+    })
+  });
+
+  const data = await res.json();
+
+  addMessage(data.reply, "ai");
+
+  history.push({ role: "assistant", content: data.reply });
+}
+
+function enter(e) {
+  if (e.key === "Enter") send();
+}
+</script>
+
+</body>
+</html>
